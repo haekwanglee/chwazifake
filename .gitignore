@@ -25,3 +25,69 @@ replay_pid*
 
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
+
+# ============ Android & Kotlin ============
+
+*.iml
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# ============ IntelliJ/Android Studio ============
+
+.idea/
+*.iws
+*.ipr
+*.class
+*.log
+
+# ============ OS별 불필요 파일 ============
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============ Kotlin Specific ============
+
+*.kotlin_module
+
+# ============ Jetpack Compose Preview ============
+
+.idea/preview.html
+.idea/preview.xml
+.idea/misc.xml
+
+# ============ Crashlytics / Firebase ============
+
+crashlytics-build.properties
+fabric.properties
+
+# ============ Keystore / Credentials ============
+
+*.jks
+*.keystore
+*.pem
+*.key
+*.crt
+
+# ============ Testing ============
+
+test-output/
+*.ec
+
+# ============ Misc ============
+
+*.orig
+*.rej
+
+# ============ Dependency Caches (optional) ============
+
+/.idea/libraries/
+/**/build/
