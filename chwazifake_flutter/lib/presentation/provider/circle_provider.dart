@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../domain/model/circle_state.dart';
 import '../../domain/usecase/handle_circle_usecase.dart';
@@ -69,8 +69,20 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     state = [...state, newCircle];
 
     // 4초 후 포커스 애니메이션 시작
-    _focusTimer = Timer(const Duration(seconds: 4), () {
+    _focusTimer = Timer(const Duration(seconds: 4), () async {
       if (state.isEmpty) return;
+
+      // 최대 강도의 진동 피드백
+      for (int i = 0; i < 2; i++) {  // 2번 반복
+        await HapticFeedback.vibrate();  // 기본 진동
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.heavyImpact();  // 강한 진동
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.vibrate();  // 기본 진동
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.heavyImpact();  // 강한 진동
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
       final updatedCircles = state.map((circle) {
         if (circle.id == _lastTouchedCircleId) {
@@ -163,14 +175,13 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     if (state.isEmpty) return;
 
     final updatedCircles = <CircleState>[];
-    bool allAnimationsComplete = true;
 
     for (final circle in state) {
       var updatedCircle = circle;
       
       if (circle.isFocused) {
         // 포커스 애니메이션 진행 (속도 2배 증가)
-        final newProgress = (circle.focusProgress + 0.016).clamp(0.0, 1.0);  // 0.008에서 0.016으로 증가
+        final newProgress = (circle.focusProgress + 0.016).clamp(0.0, 1.0);
         updatedCircle = circle.copyWith(
           focusProgress: newProgress,
           isFocused: true
@@ -184,14 +195,8 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
             developer.log('Hold timer completed, resetting state');
           });
         }
-        
-        // 아직 애니메이션이 완료되지 않았다면 체크
-        if (newProgress < 1.0) {
-          allAnimationsComplete = false;
-        }
       } else {
         updatedCircle = _handleCircleUseCase.animateCircle(circle);
-        allAnimationsComplete = false;
       }
 
       if (!updatedCircle.shouldBeRemoved()) {
