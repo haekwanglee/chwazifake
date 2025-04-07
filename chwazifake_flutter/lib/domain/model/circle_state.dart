@@ -11,9 +11,11 @@ class CircleState extends Equatable {
   final bool isTouching;
 
   static const double minRadius = 0.0;
-  static const double maxRadius = 45.0;
+  static const double maxRadius = 35.0;
+  static const double initialRadius = 20.0;
   static const double animationStep = 2.0;
   static const double rotationStep = 0.02;
+  static const double growthStep = 1.0;
 
   const CircleState({
     required this.id,
@@ -33,7 +35,7 @@ class CircleState extends Equatable {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       position: position,
       color: color,
-      radius: minRadius,
+      radius: initialRadius,
       isGrowing: true,
       rotationAngle: 0.0,
       isTouching: true,

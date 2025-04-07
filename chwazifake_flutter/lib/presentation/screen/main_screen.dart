@@ -10,8 +10,7 @@ class MainScreen extends ConsumerStatefulWidget {
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen>
-    with SingleTickerProviderStateMixin {
+class _MainScreenState extends ConsumerState<MainScreen> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -21,8 +20,8 @@ class _MainScreenState extends ConsumerState<MainScreen>
       vsync: this,
       duration: const Duration(milliseconds: 16), // ~60fps
     )..addListener(() {
-        ref.read(circleProvider.notifier).animateCircles();
-      });
+      ref.read(circleProvider.notifier).animateCircles();
+    });
     _controller.repeat();
   }
 
@@ -35,14 +34,16 @@ class _MainScreenState extends ConsumerState<MainScreen>
   @override
   Widget build(BuildContext context) {
     final circles = ref.watch(circleProvider);
+    final circleNotifier = ref.read(circleProvider.notifier);
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: TouchCircleCanvas(
         circles: circles,
-        onTouch: ref.read(circleProvider.notifier).onTouch,
-        onRelease: ref.read(circleProvider.notifier).onRelease,
-        onAnimate: ref.read(circleProvider.notifier).animateCircles,
+        onTouch: circleNotifier.onTouch,
+        onRelease: circleNotifier.onRelease,
+        onMove: circleNotifier.onMove,
+        onAnimate: circleNotifier.animateCircles,
       ),
     );
   }

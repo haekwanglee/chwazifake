@@ -47,6 +47,31 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     state = [...state, newCircle];
   }
 
+  void onMove(Offset globalPosition, Offset localPosition) {
+    if (state.isEmpty) return;
+
+    // 이동된 터치 포인트와 가장 가까운 원을 찾습니다
+    var minDistance = double.infinity;
+    var closestCircleIndex = -1;
+
+    for (var i = 0; i < state.length; i++) {
+      final distance = (state[i].position - globalPosition).distance;
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCircleIndex = i;
+      }
+    }
+
+    if (closestCircleIndex != -1 && minDistance < 100) {  // 100은 터치 인식 범위
+      final updatedCircles = List<CircleState>.from(state);
+      updatedCircles[closestCircleIndex] = state[closestCircleIndex].copyWith(
+        position: localPosition,
+      );
+      state = updatedCircles;
+      developer.log('Moving circle at index $closestCircleIndex to: $localPosition');
+    }
+  }
+
   void onRelease(Offset position) {
     if (state.isEmpty) {
       developer.log('No circles to release');

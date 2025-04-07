@@ -7,6 +7,7 @@ class TouchCircleCanvas extends StatelessWidget {
   final List<CircleState> circles;
   final Function(Offset) onTouch;
   final Function(Offset) onRelease;
+  final Function(Offset, Offset) onMove;
   final VoidCallback onAnimate;
 
   const TouchCircleCanvas({
@@ -14,6 +15,7 @@ class TouchCircleCanvas extends StatelessWidget {
     required this.circles,
     required this.onTouch,
     required this.onRelease,
+    required this.onMove,
     required this.onAnimate,
   });
 
@@ -24,6 +26,10 @@ class TouchCircleCanvas extends StatelessWidget {
       onPointerDown: (event) {
         developer.log('Touch detected at: ${event.localPosition} (pointer: ${event.pointer})');
         onTouch(event.localPosition);
+      },
+      onPointerMove: (event) {
+        developer.log('Touch moved to: ${event.localPosition} (pointer: ${event.pointer})');
+        onMove(event.position, event.localPosition);
       },
       onPointerUp: (event) {
         developer.log('Touch released at: ${event.localPosition} (pointer: ${event.pointer})');
@@ -62,46 +68,39 @@ class CirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var circle in circles) {
-      canvas.save();
-      canvas.translate(circle.position.dx, circle.position.dy);
-      
-      // 중심 원
-      final centerPaint = Paint()
+    for (final circle in circles) {
+      // 원 그리기
+      final circlePaint = Paint()
         ..color = circle.color
         ..style = PaintingStyle.fill;
 
-      canvas.drawCircle(
-        Offset.zero,
-        circle.radius * 0.8,  // 중심 원은 테두리보다 약간 작게
-        centerPaint,
-      );
+      canvas.drawCircle(circle.position, circle.radius, circlePaint);
 
       // 회전하는 테두리
       final rotatingArcPaint = Paint()
-        ..color = circle.color.withOpacity(0.7)  // 테두리에 30% 투명도 추가
+        ..color = circle.color.withAlpha((255 * 0.5).toInt())  // 50% 불투명도
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6.0
         ..strokeCap = StrokeCap.round;
 
-      // 회전하는 원호 (약 300도)
-      canvas.save();
-      canvas.rotate(circle.rotationAngle);
+      final rect = Rect.fromCircle(
+        center: circle.position,
+        radius: circle.radius + 5,
+      );
+
+      // 첫 번째 호
       canvas.drawArc(
-        Rect.fromCircle(center: Offset.zero, radius: circle.radius),
-        0,  // 0도부터 시작
-        math.pi * 5/3,  // 300도 만큼 그림
+        rect,
+        circle.rotationAngle,
+        math.pi * 5/3,  // 300도
         false,
         rotatingArcPaint,
       );
-      canvas.restore();
-
-      canvas.restore();
     }
   }
 
   @override
   bool shouldRepaint(CirclePainter oldDelegate) {
-    return oldDelegate.circles != circles;
+    return true;
   }
 } 
