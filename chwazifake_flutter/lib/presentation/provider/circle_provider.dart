@@ -71,37 +71,14 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       _pointerToCircleId[pointerId] = newCircle.id;
     }
     
+    // 새로운 터치가 발생했을 때만 마지막 터치 갱신
     _lastTouchedCircleId = newCircle.id;
     
     developer.log('Creating circle at: $position (total circles: ${state.length + 1})');
     state = [...state, newCircle];
 
-    // 4초 후 포커스 애니메이션 시작
-    _focusTimer = Timer(const Duration(seconds: 4), () async {
-      if (state.isEmpty) return;
-
-      // 최대 강도의 진동 피드백
-      for (int i = 0; i < 2; i++) {
-        await HapticFeedback.vibrate();
-        await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.heavyImpact();
-        await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.vibrate();
-        await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.heavyImpact();
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-
-      final updatedCircles = state.map((circle) {
-        if (circle.id == _lastTouchedCircleId) {
-          return circle.copyWith(isFocused: true);
-        }
-        return circle;
-      }).toList();
-
-      state = updatedCircles;
-      _isHolding = true;
-    });
+    // 4초 타이머 재설정
+    _startFocusTimer();
   }
 
   void onMove(Offset globalPosition, Offset localPosition, {int? pointerId}) {
@@ -125,8 +102,6 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
         );
         updatedCircles[circleIndex] = updatedCircle;
         state = updatedCircles;
-        
-        _lastTouchedCircleId = targetCircleId;
       }
     }
   }
@@ -160,32 +135,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
         developer.log('All pointers released, resetting state');
       } else if (state.isNotEmpty) {
         // 마지막으로 터치된 원에 대해 포커스 애니메이션 시작
-        _focusTimer?.cancel();
-        _focusTimer = Timer(const Duration(seconds: 4), () async {
-          if (state.isEmpty) return;
-
-          // 최대 강도의 진동 피드백
-          for (int i = 0; i < 2; i++) {
-            await HapticFeedback.vibrate();
-            await Future.delayed(const Duration(milliseconds: 50));
-            await HapticFeedback.heavyImpact();
-            await Future.delayed(const Duration(milliseconds: 50));
-            await HapticFeedback.vibrate();
-            await Future.delayed(const Duration(milliseconds: 50));
-            await HapticFeedback.heavyImpact();
-            await Future.delayed(const Duration(milliseconds: 100));
-          }
-
-          final updatedCircles = state.map((circle) {
-            if (circle.id == _lastTouchedCircleId) {
-              return circle.copyWith(isFocused: true);
-            }
-            return circle;
-          }).toList();
-
-          state = updatedCircles;
-          _isHolding = true;
-        });
+        _startFocusTimer();
       }
       return;
     }
@@ -249,5 +199,42 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _focusTimer?.cancel();
     _holdTimer?.cancel();
     super.dispose();
+  }
+
+  // 포커스 타이머 시작 메서드 추출
+  void _startFocusTimer() {
+    _focusTimer?.cancel();
+    _holdTimer?.cancel();
+    _isHolding = false;
+    _isAnimationComplete = false;
+
+    _focusTimer = Timer(const Duration(seconds: 4), () async {
+      if (state.isEmpty) return;
+
+      // 최대 강도의 진동 피드백
+      for (int i = 0; i < 2; i++) {
+        await HapticFeedback.vibrate();
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.heavyImpact();
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.vibrate();
+        await Future.delayed(const Duration(milliseconds: 50));
+        await HapticFeedback.heavyImpact();
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      if (state.isEmpty) return;  // 진동 중에 상태가 변경될 수 있으므로 한번 더 체크
+
+      final updatedCircles = state.map((circle) {
+        if (circle.id == _lastTouchedCircleId) {
+          return circle.copyWith(isFocused: true);
+        }
+        return circle;
+      }).toList();
+
+      state = updatedCircles;
+      _isHolding = true;
+      developer.log('Focus animation started for circle: $_lastTouchedCircleId');
+    });
   }
 } 
