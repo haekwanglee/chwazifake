@@ -20,13 +20,14 @@ final circleRepositoryProvider = Provider((ref) {
 
 class CircleNotifier extends StateNotifier<List<CircleState>> {
   final HandleCircleUseCase _handleCircleUseCase;
-  static const int maxCircles = 10;  // 최대 동시 터치 개수
+  static const int maxCircles = 10;
   Timer? _focusTimer;
   Timer? _holdTimer;
   String? _lastTouchedCircleId;
   bool _isAnimationComplete = false;
   bool _isHolding = false;
   int _activePointers = 0;
+  final Map<int, String> _pointerToCircleId = {};  // 포인터 ID와 원 ID 매핑
 
   CircleNotifier(this._handleCircleUseCase) : super([]);
 
@@ -43,7 +44,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     Color(0xFFCDDC39), // Lime
   ];
 
-  void onTouch(Offset position) {
+  void onTouch(Offset position, {int? pointerId}) {
     _activePointers++;
     
     // 애니메이션이 완료되었거나 holding 상태라면 터치 무시
@@ -64,7 +65,14 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _isAnimationComplete = false;
 
     final newCircle = _handleCircleUseCase.createCircle(position);
+    
+    // 포인터 ID와 원 ID 매핑 저장
+    if (pointerId != null) {
+      _pointerToCircleId[pointerId] = newCircle.id;
+    }
+    
     _lastTouchedCircleId = newCircle.id;
+    
     developer.log('Creating circle at: $position (total circles: ${state.length + 1})');
     state = [...state, newCircle];
 
@@ -73,14 +81,14 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       if (state.isEmpty) return;
 
       // 최대 강도의 진동 피드백
-      for (int i = 0; i < 2; i++) {  // 2번 반복
-        await HapticFeedback.vibrate();  // 기본 진동
+      for (int i = 0; i < 2; i++) {
+        await HapticFeedback.vibrate();
         await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.heavyImpact();  // 강한 진동
+        await HapticFeedback.heavyImpact();
         await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.vibrate();  // 기본 진동
+        await HapticFeedback.vibrate();
         await Future.delayed(const Duration(milliseconds: 50));
-        await HapticFeedback.heavyImpact();  // 강한 진동
+        await HapticFeedback.heavyImpact();
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
@@ -96,7 +104,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     });
   }
 
-  void onMove(Offset globalPosition, Offset localPosition) {
+  void onMove(Offset globalPosition, Offset localPosition, {int? pointerId}) {
     // 애니메이션이 완료되었거나 holding 상태라면 이동 무시
     if (_isAnimationComplete || _isHolding) {
       developer.log('Move ignored: animation complete or holding');
@@ -105,38 +113,79 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
 
     if (state.isEmpty) return;
 
-    var minDistance = double.infinity;
-    var closestCircleIndex = -1;
-
-    for (var i = 0; i < state.length; i++) {
-      final distance = (state[i].position - globalPosition).distance;
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestCircleIndex = i;
+    String? targetCircleId = pointerId != null ? _pointerToCircleId[pointerId] : null;
+    
+    if (targetCircleId != null) {
+      // 특정 포인터에 매핑된 원 찾기
+      final circleIndex = state.indexWhere((circle) => circle.id == targetCircleId);
+      if (circleIndex != -1) {
+        final updatedCircles = List<CircleState>.from(state);
+        final updatedCircle = state[circleIndex].copyWith(
+          position: localPosition,
+        );
+        updatedCircles[circleIndex] = updatedCircle;
+        state = updatedCircles;
+        
+        _lastTouchedCircleId = targetCircleId;
       }
-    }
-
-    if (closestCircleIndex != -1 && minDistance < 100) {
-      final updatedCircles = List<CircleState>.from(state);
-      final updatedCircle = state[closestCircleIndex].copyWith(
-        position: localPosition,
-      );
-      _lastTouchedCircleId = updatedCircle.id;
-      updatedCircles[closestCircleIndex] = updatedCircle;
-      state = updatedCircles;
     }
   }
 
-  void onRelease(Offset position) {
+  void onRelease(Offset position, {int? pointerId}) {
     _activePointers--;
     developer.log('Pointer released. Active pointers: $_activePointers');
     
+    if (pointerId != null) {
+      // 해당 포인터에 매핑된 원 제거 (사라지는 애니메이션 적용)
+      final circleId = _pointerToCircleId.remove(pointerId);
+      if (circleId != null) {
+        final updatedCircles = state.map((circle) {
+          if (circle.id == circleId) {
+            return circle.copyWith(
+              isGrowing: false,  // 사라지는 애니메이션 시작
+              isTouching: false  // 터치 상태 해제
+            );
+          }
+          return circle;
+        }).toList();
+        state = updatedCircles;
+      }
+    }
+
     // 모든 손가락이 떼어졌을 때 초기화
     if (_activePointers <= 0) {
       _activePointers = 0;
       if (_isAnimationComplete || _isHolding) {
         reset();
         developer.log('All pointers released, resetting state');
+      } else if (state.isNotEmpty) {
+        // 마지막으로 터치된 원에 대해 포커스 애니메이션 시작
+        _focusTimer?.cancel();
+        _focusTimer = Timer(const Duration(seconds: 4), () async {
+          if (state.isEmpty) return;
+
+          // 최대 강도의 진동 피드백
+          for (int i = 0; i < 2; i++) {
+            await HapticFeedback.vibrate();
+            await Future.delayed(const Duration(milliseconds: 50));
+            await HapticFeedback.heavyImpact();
+            await Future.delayed(const Duration(milliseconds: 50));
+            await HapticFeedback.vibrate();
+            await Future.delayed(const Duration(milliseconds: 50));
+            await HapticFeedback.heavyImpact();
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
+
+          final updatedCircles = state.map((circle) {
+            if (circle.id == _lastTouchedCircleId) {
+              return circle.copyWith(isFocused: true);
+            }
+            return circle;
+          }).toList();
+
+          state = updatedCircles;
+          _isHolding = true;
+        });
       }
       return;
     }
@@ -145,29 +194,6 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     if (_isAnimationComplete || _isHolding) {
       developer.log('Release ignored: animation complete or holding');
       return;
-    }
-
-    if (state.isEmpty) return;
-
-    var minDistance = double.infinity;
-    var closestCircleIndex = -1;
-
-    for (var i = 0; i < state.length; i++) {
-      final distance = (state[i].position - position).distance;
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestCircleIndex = i;
-      }
-    }
-
-    if (closestCircleIndex != -1) {
-      final updatedCircles = List<CircleState>.from(state);
-      final updatedCircle = state[closestCircleIndex].copyWith(
-        isGrowing: false,
-      );
-      _lastTouchedCircleId = updatedCircle.id;
-      updatedCircles[closestCircleIndex] = updatedCircle;
-      state = updatedCircles;
     }
   }
 
@@ -213,6 +239,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _focusTimer?.cancel();
     _holdTimer?.cancel();
     _lastTouchedCircleId = null;
+    _pointerToCircleId.clear();
     state = [];
     developer.log('State reset completed');
   }

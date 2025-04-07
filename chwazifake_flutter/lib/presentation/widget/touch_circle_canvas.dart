@@ -5,9 +5,9 @@ import 'dart:math' as math;
 
 class TouchCircleCanvas extends StatelessWidget {
   final List<CircleState> circles;
-  final Function(Offset) onTouch;
-  final Function(Offset) onRelease;
-  final Function(Offset, Offset) onMove;
+  final Function(Offset, {int? pointerId}) onTouch;
+  final Function(Offset, {int? pointerId}) onRelease;
+  final Function(Offset, Offset, {int? pointerId}) onMove;
   final VoidCallback onAnimate;
 
   const TouchCircleCanvas({
@@ -25,30 +25,15 @@ class TouchCircleCanvas extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onPointerDown: (event) {
         developer.log('Touch detected at: ${event.localPosition} (pointer: ${event.pointer})');
-        onTouch(event.localPosition);
+        onTouch(event.localPosition, pointerId: event.pointer);
       },
       onPointerMove: (event) {
         developer.log('Touch moved to: ${event.localPosition} (pointer: ${event.pointer})');
-        onMove(event.position, event.localPosition);
+        onMove(event.position, event.localPosition, pointerId: event.pointer);
       },
       onPointerUp: (event) {
         developer.log('Touch released at: ${event.localPosition} (pointer: ${event.pointer})');
-        if (circles.isNotEmpty) {
-          CircleState? closestCircle;
-          double minDistance = double.infinity;
-          
-          for (var circle in circles) {
-            final distance = (circle.position - event.localPosition).distance;
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestCircle = circle;
-            }
-          }
-          
-          if (closestCircle != null) {
-            onRelease(closestCircle.position);
-          }
-        }
+        onRelease(event.localPosition, pointerId: event.pointer);
       },
       child: CustomPaint(
         painter: CirclePainter(circles: circles),
