@@ -100,8 +100,8 @@ class CirclePainter extends CustomPainter {
         ..blendMode = BlendMode.clear;
 
       // 구멍의 크기는 애니메이션 진행도에 따라 감소
-      final maxHoleRadius = math.min(size.width, size.height) * 0.4; // 화면 크기의 40%
-      final minHoleRadius = focusedCircle.radius * 2.0;
+      final maxHoleRadius = math.min(size.width, size.height) * 0.9; // 화면 크기의 90%로 증가 (2배)
+      final minHoleRadius = focusedCircle.radius * 1.8; // 원래 원 크기의 1.8배 유지
       final holeRadius = maxHoleRadius - (maxHoleRadius - minHoleRadius) * focusedCircle.focusProgress;
 
       canvas.drawCircle(

@@ -169,8 +169,8 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       var updatedCircle = circle;
       
       if (circle.isFocused) {
-        // 포커스 애니메이션 진행 (속도 감소)
-        final newProgress = (circle.focusProgress + 0.01).clamp(0.0, 1.0);
+        // 포커스 애니메이션 진행 (속도 2배 증가)
+        final newProgress = (circle.focusProgress + 0.016).clamp(0.0, 1.0);  // 0.008에서 0.016으로 증가
         updatedCircle = circle.copyWith(
           focusProgress: newProgress,
           isFocused: true
