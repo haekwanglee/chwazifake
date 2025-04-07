@@ -1,26 +1,28 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 
 class CircleState extends Equatable {
   final String id;
   final Offset position;
   final Color color;
-  final double innerRadius;
-  final double outerRadius;
+  final double radius;
   final bool isGrowing;
+  final double rotationAngle;
+  final bool isTouching;
 
-  static const double minRadius = 20.0;
-  static const double maxRadius = 100.0;
+  static const double minRadius = 0.0;
+  static const double maxRadius = 45.0;
   static const double animationStep = 2.0;
+  static const double rotationStep = 0.02;
 
   const CircleState({
     required this.id,
     required this.position,
     required this.color,
-    required this.innerRadius,
-    required this.outerRadius,
+    required this.radius,
     required this.isGrowing,
+    this.rotationAngle = 0.0,
+    this.isTouching = false,
   });
 
   factory CircleState.create({
@@ -31,73 +33,66 @@ class CircleState extends Equatable {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       position: position,
       color: color,
-      innerRadius: minRadius,
-      outerRadius: minRadius + 10,
+      radius: minRadius,
       isGrowing: true,
+      rotationAngle: 0.0,
+      isTouching: true,
     );
   }
 
   CircleState grow() {
-    if (!isGrowing) {
-      final newInnerRadius = innerRadius - animationStep;
-      final newOuterRadius = outerRadius - animationStep;
-      
-      if (newInnerRadius <= 0) {
-        return copyWith(
-          innerRadius: 0,
-          outerRadius: 0,
-        );
+    if (!isTouching && !isGrowing) {
+      final newRadius = radius - animationStep;
+      if (newRadius <= 0) {
+        return copyWith(radius: 0);
       }
-      
       return copyWith(
-        innerRadius: newInnerRadius,
-        outerRadius: newOuterRadius,
+        radius: newRadius,
+        rotationAngle: rotationAngle + rotationStep,
       );
     } else {
-      final newInnerRadius = innerRadius + animationStep;
-      final newOuterRadius = outerRadius + animationStep;
-      
-      if (newOuterRadius >= maxRadius) {
+      final newRadius = radius + animationStep;
+      if (newRadius >= maxRadius) {
         return copyWith(
-          innerRadius: maxRadius - 10,
-          outerRadius: maxRadius,
-          isGrowing: false,
+          radius: maxRadius,
+          rotationAngle: rotationAngle + rotationStep,
         );
       }
-      
       return copyWith(
-        innerRadius: newInnerRadius,
-        outerRadius: newOuterRadius,
+        radius: newRadius,
+        rotationAngle: rotationAngle + rotationStep,
       );
     }
   }
 
   bool shouldBeRemoved() {
-    return innerRadius <= 0;
+    return !isTouching && radius <= 0;
   }
 
   CircleState changeDirection() {
-    return copyWith(isGrowing: !isGrowing);
+    return copyWith(isGrowing: !isGrowing, isTouching: false);
   }
 
   CircleState copyWith({
     String? id,
     Offset? position,
     Color? color,
-    double? innerRadius,
-    double? outerRadius,
+    double? radius,
     bool? isGrowing,
+    double? rotationAngle,
+    bool? isTouching,
   }) {
     return CircleState(
       id: id ?? this.id,
       position: position ?? this.position,
       color: color ?? this.color,
-      innerRadius: innerRadius ?? this.innerRadius,
-      outerRadius: outerRadius ?? this.outerRadius,
+      radius: radius ?? this.radius,
       isGrowing: isGrowing ?? this.isGrowing,
+      rotationAngle: rotationAngle ?? this.rotationAngle,
+      isTouching: isTouching ?? this.isTouching,
     );
   }
 
   @override
-  List<Object?> get props => [id, position, color, innerRadius, outerRadius, isGrowing];
+  List<Object?> get props => [id, position, color, radius, isGrowing, rotationAngle, isTouching];
 } 

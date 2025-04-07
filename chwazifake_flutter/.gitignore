@@ -1,24 +1,23 @@
 # Miscellaneous
 *.class
-*.log
 *.pyc
 *.swp
-.DS_Store
 .atom/
 .buildlog/
 .history
 .svn/
 migrate_working_dir/
 
-# IntelliJ related
+# IDE related
 *.iml
 *.ipr
 *.iws
 .idea/
-
-# VS Code
 .vscode/
 *.code-workspace
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -37,12 +36,7 @@ migrate_working_dir/
 *.dill.track.dill
 *.snapshot
 generated_plugin_registrant.dart
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
+.melos_tool/
 
 # Android related
 android/.gradle/
@@ -54,6 +48,12 @@ android/app/profile/
 android/app/release/
 android/app/build/
 android/build/
+android/app/.cxx/
+*.bin
+*.so
+*.apk
+*.aab
+*.aar
 
 # iOS related
 ios/Flutter/Flutter.framework
@@ -84,39 +84,22 @@ linux/.dart_tool/
 linux/runner/ephemeral/
 linux/flutter/ephemeral/
 
-# Coverage
+# Testing & Coverage
 coverage/
 *.lcov
+.dart_tool/test/
 
-# Environment files
+# Environment & Configuration
 .env
 .env.*
 !.env.example
-
-# Flutter 관련
-.melos_tool/
-
-# IDE 관련
-*.iml
-.vscode/
-.vscode/settings.json
-.vscode/launch.json
-.vscode/tasks.json
-
-# VS Code test logs
-.dart_tool/test
-
-# OS 관련
-Thumbs.db
-
-# Log 파일
-*.log
-
-# 환경 설정 파일 (선택적으로 제외)
-.env
-.env.*
-
-# Firebase 관련 (선택적으로 제외)
 google-services.json
 GoogleService-Info.plist
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import '../../domain/model/circle_state.dart';
+import 'dart:math' as math;
 
 class TouchCircleCanvas extends StatelessWidget {
   final List<CircleState> circles;
@@ -62,27 +63,40 @@ class CirclePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (var circle in circles) {
-      // 외부 원
-      final outerPaint = Paint()
-        ..color = circle.color.withAlpha(128)
-        ..style = PaintingStyle.fill;
-
-      canvas.drawCircle(
-        circle.position,
-        circle.outerRadius,
-        outerPaint,
-      );
-
-      // 내부 원
-      final innerPaint = Paint()
+      canvas.save();
+      canvas.translate(circle.position.dx, circle.position.dy);
+      
+      // 중심 원
+      final centerPaint = Paint()
         ..color = circle.color
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(
-        circle.position,
-        circle.innerRadius,
-        innerPaint,
+        Offset.zero,
+        circle.radius * 0.8,  // 중심 원은 테두리보다 약간 작게
+        centerPaint,
       );
+
+      // 회전하는 테두리
+      final rotatingArcPaint = Paint()
+        ..color = circle.color.withOpacity(0.7)  // 테두리에 30% 투명도 추가
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6.0
+        ..strokeCap = StrokeCap.round;
+
+      // 회전하는 원호 (약 300도)
+      canvas.save();
+      canvas.rotate(circle.rotationAngle);
+      canvas.drawArc(
+        Rect.fromCircle(center: Offset.zero, radius: circle.radius),
+        0,  // 0도부터 시작
+        math.pi * 5/3,  // 300도 만큼 그림
+        false,
+        rotatingArcPaint,
+      );
+      canvas.restore();
+
+      canvas.restore();
     }
   }
 

@@ -47,7 +47,7 @@ class HandleCircleUseCase {
       position: position,
       color: colors[_random.nextInt(colors.length)],
     );
-    developer.log('Creating new circle at $position with initial radius: ${circle.innerRadius}');
+    developer.log('Creating new circle at $position with initial radius: ${circle.radius}');
     return circle;
   }
 
