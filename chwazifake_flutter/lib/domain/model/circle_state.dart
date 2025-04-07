@@ -9,6 +9,8 @@ class CircleState extends Equatable {
   final bool isGrowing;
   final double rotationAngle;
   final bool isTouching;
+  final bool isFocused;
+  final double focusProgress;
 
   static const double minRadius = 0.0;
   static const double maxRadius = 35.0;
@@ -25,6 +27,8 @@ class CircleState extends Equatable {
     required this.isGrowing,
     this.rotationAngle = 0.0,
     this.isTouching = false,
+    this.isFocused = false,
+    this.focusProgress = 0.0,
   });
 
   factory CircleState.create({
@@ -39,6 +43,8 @@ class CircleState extends Equatable {
       isGrowing: true,
       rotationAngle: 0.0,
       isTouching: true,
+      isFocused: false,
+      focusProgress: 0.0,
     );
   }
 
@@ -83,6 +89,8 @@ class CircleState extends Equatable {
     bool? isGrowing,
     double? rotationAngle,
     bool? isTouching,
+    bool? isFocused,
+    double? focusProgress,
   }) {
     return CircleState(
       id: id ?? this.id,
@@ -92,9 +100,11 @@ class CircleState extends Equatable {
       isGrowing: isGrowing ?? this.isGrowing,
       rotationAngle: rotationAngle ?? this.rotationAngle,
       isTouching: isTouching ?? this.isTouching,
+      isFocused: isFocused ?? this.isFocused,
+      focusProgress: focusProgress ?? this.focusProgress,
     );
   }
 
   @override
-  List<Object?> get props => [id, position, color, radius, isGrowing, rotationAngle, isTouching];
+  List<Object?> get props => [id, position, color, radius, isGrowing, rotationAngle, isTouching, isFocused, focusProgress];
 } 

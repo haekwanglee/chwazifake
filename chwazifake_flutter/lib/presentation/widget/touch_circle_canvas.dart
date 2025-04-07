@@ -68,35 +68,80 @@ class CirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final circle in circles) {
-      // 원 그리기
-      final circlePaint = Paint()
-        ..color = circle.color
+    if (circles.isEmpty) return;
+
+    // 일반 원들 먼저 그리기
+    for (final circle in circles.where((c) => !c.isFocused)) {
+      _drawCircle(canvas, circle);
+    }
+
+    // 포커스된 원 찾기
+    final focusedCircle = circles.firstWhere(
+      (c) => c.isFocused,
+      orElse: () => circles[0],
+    );
+
+    // 포커스 애니메이션 그리기
+    if (focusedCircle.isFocused) {
+      // 화면 전체를 마지막 선택된 원의 색상으로 덮는 레이어
+      final backgroundPaint = Paint()
+        ..color = focusedCircle.color
         ..style = PaintingStyle.fill;
 
-      canvas.drawCircle(circle.position, circle.radius, circlePaint);
-
-      // 회전하는 테두리
-      final rotatingArcPaint = Paint()
-        ..color = circle.color.withAlpha((255 * 0.5).toInt())  // 50% 불투명도
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.0
-        ..strokeCap = StrokeCap.round;
-
-      final rect = Rect.fromCircle(
-        center: circle.position,
-        radius: circle.radius + 5,
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        backgroundPaint,
       );
 
-      // 첫 번째 호
-      canvas.drawArc(
-        rect,
-        circle.rotationAngle,
-        math.pi * 5/3,  // 300도
-        false,
-        rotatingArcPaint,
+      // 중앙 구멍 (투명)
+      final holePaint = Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.fill
+        ..blendMode = BlendMode.clear;
+
+      // 구멍의 크기는 애니메이션 진행도에 따라 감소
+      final maxHoleRadius = math.min(size.width, size.height) * 0.4; // 화면 크기의 40%
+      final minHoleRadius = focusedCircle.radius * 2.0;
+      final holeRadius = maxHoleRadius - (maxHoleRadius - minHoleRadius) * focusedCircle.focusProgress;
+
+      canvas.drawCircle(
+        focusedCircle.position,
+        holeRadius,
+        holePaint,
       );
+
+      // 포커스된 원 다시 그리기
+      _drawCircle(canvas, focusedCircle);
     }
+  }
+
+  void _drawCircle(Canvas canvas, CircleState circle) {
+    // 원 그리기
+    final circlePaint = Paint()
+      ..color = circle.color
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(circle.position, circle.radius, circlePaint);
+
+    // 회전하는 테두리
+    final rotatingArcPaint = Paint()
+      ..color = circle.color.withAlpha((255 * 0.5).toInt())
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.0
+      ..strokeCap = StrokeCap.round;
+
+    final rect = Rect.fromCircle(
+      center: circle.position,
+      radius: circle.radius + 5,
+    );
+
+    canvas.drawArc(
+      rect,
+      circle.rotationAngle,
+      math.pi * 5/3,
+      false,
+      rotatingArcPaint,
+    );
   }
 
   @override

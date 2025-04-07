@@ -4,6 +4,7 @@ import '../../domain/model/circle_state.dart';
 import '../../domain/usecase/handle_circle_usecase.dart';
 import '../../domain/repository/circle_repository.dart';
 import 'dart:developer' as developer;
+import 'dart:async';
 
 final circleProvider = StateNotifierProvider<CircleNotifier, List<CircleState>>((ref) {
   return CircleNotifier(ref.watch(handleCircleUseCaseProvider));
@@ -20,6 +21,12 @@ final circleRepositoryProvider = Provider((ref) {
 class CircleNotifier extends StateNotifier<List<CircleState>> {
   final HandleCircleUseCase _handleCircleUseCase;
   static const int maxCircles = 10;  // 최대 동시 터치 개수
+  Timer? _focusTimer;
+  Timer? _holdTimer;
+  String? _lastTouchedCircleId;
+  bool _isAnimationComplete = false;
+  bool _isHolding = false;
+  int _activePointers = 0;
 
   CircleNotifier(this._handleCircleUseCase) : super([]);
 
@@ -37,20 +44,55 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
   ];
 
   void onTouch(Offset position) {
+    _activePointers++;
+    
+    // 애니메이션이 완료되었거나 holding 상태라면 터치 무시
+    if (_isAnimationComplete || _isHolding) {
+      developer.log('Touch ignored: animation complete or holding');
+      return;
+    }
+
     if (state.length >= maxCircles) {
       developer.log('Maximum number of circles reached: $maxCircles');
       return;
     }
 
+    // 이전 타이머들 취소
+    _focusTimer?.cancel();
+    _holdTimer?.cancel();
+    _isHolding = false;
+    _isAnimationComplete = false;
+
     final newCircle = _handleCircleUseCase.createCircle(position);
+    _lastTouchedCircleId = newCircle.id;
     developer.log('Creating circle at: $position (total circles: ${state.length + 1})');
     state = [...state, newCircle];
+
+    // 4초 후 포커스 애니메이션 시작
+    _focusTimer = Timer(const Duration(seconds: 4), () {
+      if (state.isEmpty) return;
+
+      final updatedCircles = state.map((circle) {
+        if (circle.id == _lastTouchedCircleId) {
+          return circle.copyWith(isFocused: true);
+        }
+        return circle;
+      }).toList();
+
+      state = updatedCircles;
+      _isHolding = true;
+    });
   }
 
   void onMove(Offset globalPosition, Offset localPosition) {
+    // 애니메이션이 완료되었거나 holding 상태라면 이동 무시
+    if (_isAnimationComplete || _isHolding) {
+      developer.log('Move ignored: animation complete or holding');
+      return;
+    }
+
     if (state.isEmpty) return;
 
-    // 이동된 터치 포인트와 가장 가까운 원을 찾습니다
     var minDistance = double.infinity;
     var closestCircleIndex = -1;
 
@@ -62,23 +104,39 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       }
     }
 
-    if (closestCircleIndex != -1 && minDistance < 100) {  // 100은 터치 인식 범위
+    if (closestCircleIndex != -1 && minDistance < 100) {
       final updatedCircles = List<CircleState>.from(state);
-      updatedCircles[closestCircleIndex] = state[closestCircleIndex].copyWith(
+      final updatedCircle = state[closestCircleIndex].copyWith(
         position: localPosition,
       );
+      _lastTouchedCircleId = updatedCircle.id;
+      updatedCircles[closestCircleIndex] = updatedCircle;
       state = updatedCircles;
-      developer.log('Moving circle at index $closestCircleIndex to: $localPosition');
     }
   }
 
   void onRelease(Offset position) {
-    if (state.isEmpty) {
-      developer.log('No circles to release');
+    _activePointers--;
+    developer.log('Pointer released. Active pointers: $_activePointers');
+    
+    // 모든 손가락이 떼어졌을 때 초기화
+    if (_activePointers <= 0) {
+      _activePointers = 0;
+      if (_isAnimationComplete || _isHolding) {
+        reset();
+        developer.log('All pointers released, resetting state');
+      }
       return;
     }
 
-    // 가장 가까운 원을 찾아서 방향을 바꿈
+    // 애니메이션이 완료되었거나 holding 상태라면 릴리즈 무시
+    if (_isAnimationComplete || _isHolding) {
+      developer.log('Release ignored: animation complete or holding');
+      return;
+    }
+
+    if (state.isEmpty) return;
+
     var minDistance = double.infinity;
     var closestCircleIndex = -1;
 
@@ -92,8 +150,11 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
 
     if (closestCircleIndex != -1) {
       final updatedCircles = List<CircleState>.from(state);
-      updatedCircles[closestCircleIndex] = _handleCircleUseCase.changeGrowthDirection(state[closestCircleIndex]);
-      developer.log('Changing direction for circle at index: $closestCircleIndex');
+      final updatedCircle = state[closestCircleIndex].copyWith(
+        isGrowing: false,
+      );
+      _lastTouchedCircleId = updatedCircle.id;
+      updatedCircles[closestCircleIndex] = updatedCircle;
       state = updatedCircles;
     }
   }
@@ -102,22 +163,59 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     if (state.isEmpty) return;
 
     final updatedCircles = <CircleState>[];
-    var circlesRemoved = false;
+    bool allAnimationsComplete = true;
 
     for (final circle in state) {
-      final updatedCircle = _handleCircleUseCase.animateCircle(circle);
+      var updatedCircle = circle;
+      
+      if (circle.isFocused) {
+        // 포커스 애니메이션 진행 (속도 감소)
+        final newProgress = (circle.focusProgress + 0.01).clamp(0.0, 1.0);
+        updatedCircle = circle.copyWith(
+          focusProgress: newProgress,
+          isFocused: true
+        );
+        
+        // 애니메이션이 완료되고 아직 타이머가 설정되지 않았다면
+        if (newProgress >= 1.0 && _holdTimer == null) {
+          // 2초 후에 모든 원 제거
+          _holdTimer = Timer(const Duration(seconds: 2), () {
+            reset();
+            developer.log('Hold timer completed, resetting state');
+          });
+        }
+        
+        // 아직 애니메이션이 완료되지 않았다면 체크
+        if (newProgress < 1.0) {
+          allAnimationsComplete = false;
+        }
+      } else {
+        updatedCircle = _handleCircleUseCase.animateCircle(circle);
+        allAnimationsComplete = false;
+      }
+
       if (!updatedCircle.shouldBeRemoved()) {
         updatedCircles.add(updatedCircle);
-      } else {
-        circlesRemoved = true;
-        developer.log('Removing circle at: ${circle.position}');
       }
-    }
-
-    if (updatedCircles.length != state.length || circlesRemoved) {
-      developer.log('Circles after animation: ${updatedCircles.length}');
     }
     
     state = updatedCircles;
+  }
+
+  void reset() {
+    _isAnimationComplete = false;
+    _isHolding = false;
+    _focusTimer?.cancel();
+    _holdTimer?.cancel();
+    _lastTouchedCircleId = null;
+    state = [];
+    developer.log('State reset completed');
+  }
+
+  @override
+  void dispose() {
+    _focusTimer?.cancel();
+    _holdTimer?.cancel();
+    super.dispose();
   }
 } 
