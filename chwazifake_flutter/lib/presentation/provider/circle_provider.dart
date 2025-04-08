@@ -31,8 +31,8 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
   bool _isHolding = false;
   int _activePointers = 0;
   final Map<int, String> _pointerToCircleId = {};  // 포인터 ID와 원 ID 매핑
-  final AudioPlayer _focusAudioPlayer = AudioPlayer();  // 포커스 효과음용 오디오 플레이어
-  final AudioPlayer _touchAudioPlayer = AudioPlayer();  // 터치 효과음용 오디오 플레이어
+  AudioPlayer _focusAudioPlayer = AudioPlayer();  // 포커스 효과음용 오디오 플레이어
+  AudioPlayer _touchAudioPlayer = AudioPlayer();  // 터치 효과음용 오디오 플레이어
 
   CircleNotifier(this._handleCircleUseCase) : super([]) {
     _initAudio();  // 생성자에서 _initAudio 호출
@@ -103,56 +103,53 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       
       // 터치 효과음 초기화
       await _touchAudioPlayer.setAsset('assets/audio/touch_sound.mp3');
-      await _touchAudioPlayer.setVolume(0.7);  // 터치 효과음은 약간 작게
+      await _touchAudioPlayer.setVolume(0.7);
       await _touchAudioPlayer.setSpeed(1.0);
+      await _touchAudioPlayer.setLoopMode(LoopMode.off);
+      
+      developer.log('Audio initialization completed successfully');
     } catch (e) {
       developer.log('Error initializing audio: $e');
+      // 오류 발생 시 오디오 플레이어 재초기화
+      await _cleanupAudioPlayers();
+      _focusAudioPlayer = AudioPlayer();
+      _touchAudioPlayer = AudioPlayer();
+      await _initAudio();
+    }
+  }
+
+  Future<void> _cleanupAudioPlayers() async {
+    try {
+      await _focusAudioPlayer.dispose();
+      await _touchAudioPlayer.dispose();
+    } catch (e) {
+      developer.log('Error during audio cleanup: $e');
     }
   }
 
   void playFocusSound() async {
     try {
       developer.log('Attempting to play focus sound...');
-      
-      // 현재 재생 중인 오디오 중지
-      await _focusAudioPlayer.stop();
-      
-      // 오디오 재초기화
-      await _focusAudioPlayer.setAsset('assets/audio/focus_sound.mp3');
-      
-      // 오디오 재생
+      await _focusAudioPlayer.seek(Duration.zero);
       await _focusAudioPlayer.play();
       developer.log('Focus sound playback started');
-      
-      // 재생 상태 모니터링
-      _focusAudioPlayer.playerStateStream.listen((state) {
-        developer.log('Player state changed: $state');
-        if (state.processingState == ProcessingState.completed) {
-          developer.log('Playback completed');
-        }
-      });
-      
     } catch (e) {
       developer.log('Error playing focus sound: $e');
+      // 재생 실패 시 오디오 재초기화
+      await _initAudio();
     }
   }
 
   void playTouchSound() async {
     try {
       developer.log('Attempting to play touch sound...');
-      
-      // 현재 재생 중인 터치 효과음 중지
-      await _touchAudioPlayer.stop();
-      
-      // 오디오 재초기화
-      await _touchAudioPlayer.setAsset('assets/audio/touch_sound.mp3');
-      
-      // 오디오 재생
+      await _touchAudioPlayer.seek(Duration.zero);
       await _touchAudioPlayer.play();
       developer.log('Touch sound playback started');
-      
     } catch (e) {
       developer.log('Error playing touch sound: $e');
+      // 재생 실패 시 오디오 재초기화
+      await _initAudio();
     }
   }
 
@@ -227,7 +224,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _isHolding = false;
     _isAnimationComplete = false;
 
-    // 터치가 감지되자마자 효과음 재생
+    // 터치 효과음 재생
     playTouchSound();
 
     // 이전 터치와 다른 색상 선택
@@ -362,16 +359,19 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     developer.log('State reset completed');
     
     // 레이어가 사라질 때 효과음 정지
-    _focusAudioPlayer.stop();
-    _touchAudioPlayer.stop();
+    try {
+      _focusAudioPlayer.stop();
+      _touchAudioPlayer.stop();
+    } catch (e) {
+      developer.log('Error stopping audio during reset: $e');
+    }
   }
 
   @override
   void dispose() {
     _focusTimer?.cancel();
     _holdTimer?.cancel();
-    _focusAudioPlayer.dispose();  // 포커스 효과음 오디오 플레이어 해제
-    _touchAudioPlayer.dispose();  // 터치 효과음 오디오 플레이어 해제
+    _cleanupAudioPlayers();
     super.dispose();
   }
 
