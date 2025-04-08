@@ -42,13 +42,19 @@ class HandleCircleUseCase {
 
   List<CircleState> getCircles() => _repository.getCircles();
 
-  CircleState createCircle(Offset position) {
-    final circle = CircleState.create(
+  CircleState createCircle(Offset position, {Color? color}) {
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    return CircleState(
+      id: id,
       position: position,
-      color: colors[_random.nextInt(colors.length)],
+      radius: 0.0,
+      color: color ?? Colors.blue,
+      isGrowing: true,
+      isTouching: true,
+      touchHoldProgress: 0.0,
+      focusProgress: 0.0,
+      isFocused: false,
     );
-    developer.log('Creating new circle at $position with initial radius: ${circle.radius}');
-    return circle;
   }
 
   CircleState animateCircle(CircleState circle) {

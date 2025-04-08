@@ -6,6 +6,8 @@ import '../../domain/repository/circle_repository.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
+import 'dart:math' as math;
+import 'package:flutter/painting.dart';
 
 final circleProvider = StateNotifierProvider<CircleNotifier, List<CircleState>>((ref) {
   return CircleNotifier(ref.watch(handleCircleUseCaseProvider));
@@ -37,16 +39,59 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
   }
 
   static const List<Color> colors = [
-    Color(0xFF2196F3), // Blue
-    Color(0xFFE91E63), // Red
-    Color(0xFF4CAF50), // Green
-    Color(0xFFFFEB3B), // Yellow
-    Color(0xFF9C27B0), // Purple
-    Color(0xFFFF9800), // Orange
-    Color(0xFF00BCD4), // Cyan
-    Color(0xFFFF4081), // Pink
-    Color(0xFF009688), // Teal
-    Color(0xFFCDDC39), // Lime
+    // 밝은 색상
+    Color(0xFFFFEB3B), // 밝은 노랑
+    Color(0xFFFFC107), // 호박색
+    Color(0xFFFF9800), // 주황색
+    Color(0xFFFF5722), // 진한 주황
+    Color(0xFFE91E63), // 핑크
+    Color(0xFFFF4081), // 밝은 핑크
+    Color(0xFF9C27B0), // 보라
+    Color(0xFF673AB7), // 진한 보라
+    Color(0xFF3F51B5), // 인디고
+    Color(0xFF2196F3), // 밝은 파랑
+    Color(0xFF03A9F4), // 하늘색
+    Color(0xFF00BCD4), // 청록
+    Color(0xFF009688), // 틸
+    Color(0xFF4CAF50), // 초록
+    Color(0xFF8BC34A), // 라임
+    Color(0xFFCDDC39), // 연한 라임
+    Color(0xFFFFEB3B), // 노랑
+    Color(0xFFFFC107), // 호박색
+    Color(0xFFFF9800), // 주황색
+    Color(0xFFFF5722), // 진한 주황
+    Color(0xFFE91E63), // 핑크
+    Color(0xFFFF4081), // 밝은 핑크
+    Color(0xFF9C27B0), // 보라
+    Color(0xFF673AB7), // 진한 보라
+    Color(0xFF3F51B5), // 인디고
+    Color(0xFF2196F3), // 밝은 파랑
+    Color(0xFF03A9F4), // 하늘색
+    Color(0xFF00BCD4), // 청록
+    Color(0xFF009688), // 틸
+    Color(0xFF4CAF50), // 초록
+    // 추가 색상
+    Color(0xFF795548), // 갈색
+    Color(0xFF607D8B), // 청회색
+    Color(0xFF9E9E9E), // 회색
+    Color(0xFFF44336), // 빨강
+    Color(0xFFFF5252), // 밝은 빨강
+    Color(0xFFFF1744), // 진한 빨강
+    Color(0xFFD50000), // 어두운 빨강
+    Color(0xFF00E676), // 밝은 초록
+    Color(0xFF00C853), // 진한 초록
+    Color(0xFF00BFA5), // 청록
+    Color(0xFF00ACC1), // 진한 청록
+    Color(0xFF0091EA), // 밝은 파랑
+    Color(0xFF2962FF), // 진한 파랑
+    Color(0xFF304FFE), // 어두운 파랑
+    Color(0xFF651FFF), // 보라
+    Color(0xFF7C4DFF), // 밝은 보라
+    Color(0xFF6200EA), // 진한 보라
+    Color(0xFFAA00FF), // 자주
+    Color(0xFFD500F9), // 밝은 자주
+    Color(0xFFC51162), // 진한 자주
+    Color(0xFFFF6D00), // 주황
   ];
 
   Future<void> _initAudio() async {
@@ -111,6 +156,57 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     }
   }
 
+  // 색상 간의 차이를 계산하는 메서드 (HSV 색상 공간 사용)
+  double _calculateColorDifference(Color color1, Color color2) {
+    // RGB를 HSV로 변환
+    final hsv1 = HSVColor.fromColor(color1);
+    final hsv2 = HSVColor.fromColor(color2);
+    
+    // 색상(H), 채도(S), 명도(V) 차이 계산
+    final hueDiff = (hsv1.hue - hsv2.hue).abs();
+    final saturationDiff = (hsv1.saturation - hsv2.saturation).abs();
+    final valueDiff = (hsv1.value - hsv2.value).abs();
+    
+    // 가중치를 적용하여 전체 차이 계산
+    // 색상 차이에 더 큰 가중치를 부여
+    return (hueDiff * 0.6) + (saturationDiff * 0.2) + (valueDiff * 0.2);
+  }
+
+  // 이전 터치와 가장 다른 색상 선택
+  Color _selectDistinctColor() {
+    if (state.isEmpty) {
+      return colors[math.Random().nextInt(colors.length)];  // 첫 번째 터치인 경우 랜덤 색상 사용
+    }
+
+    // 최근 10개의 색상을 고려하여 선택
+    final recentColors = state.length > 10 
+        ? state.sublist(state.length - 10).map((c) => c.color).toList()
+        : state.map((c) => c.color).toList();
+    
+    // 사용 가능한 색상 중에서 랜덤하게 5개 선택
+    final availableColors = List<Color>.from(colors);
+    availableColors.shuffle(math.Random());
+    final candidateColors = availableColors.take(5).toList();
+    
+    // 후보 색상들 중에서 최근 색상들과 가장 다른 색상 선택
+    var maxDifference = 0.0;
+    var selectedColor = candidateColors[0];
+    
+    for (final color in candidateColors) {
+      // 현재 색상과 최근 색상들의 평균 차이 계산
+      final averageDifference = recentColors
+          .map((c) => _calculateColorDifference(color, c))
+          .reduce((a, b) => a + b) / recentColors.length;
+      
+      if (averageDifference > maxDifference) {
+        maxDifference = averageDifference;
+        selectedColor = color;
+      }
+    }
+    
+    return selectedColor;
+  }
+
   void onTouch(Offset position, {int? pointerId}) {
     _activePointers++;
     
@@ -134,7 +230,9 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     // 터치가 감지되자마자 효과음 재생
     playTouchSound();
 
-    final newCircle = _handleCircleUseCase.createCircle(position);
+    // 이전 터치와 다른 색상 선택
+    final selectedColor = _selectDistinctColor();
+    final newCircle = _handleCircleUseCase.createCircle(position, color: selectedColor);
     
     // 포인터 ID와 원 ID 매핑 저장
     if (pointerId != null) {
@@ -144,7 +242,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     // 새로운 터치가 발생했을 때만 마지막 터치 갱신
     _lastTouchedCircleId = newCircle.id;
     
-    developer.log('Creating circle at: $position (total circles: ${state.length + 1})');
+    developer.log('Creating circle at: $position with color: $selectedColor (total circles: ${state.length + 1})');
     state = [...state, newCircle];
 
     // 4초 타이머 재설정
