@@ -86,7 +86,7 @@ class CirclePainter extends CustomPainter {
 
       // 구멍의 크기는 애니메이션 진행도에 따라 감소
       final maxHoleRadius = math.min(size.width, size.height) * 0.9; // 화면 크기의 90%로 증가 (2배)
-      final minHoleRadius = focusedCircle.radius * 1.8; // 원래 원 크기의 1.8배 유지
+      final minHoleRadius = focusedCircle.radius * 2.0; // 원래 원 크기의 1.8배 유지
       final holeRadius = maxHoleRadius - (maxHoleRadius - minHoleRadius) * focusedCircle.focusProgress;
 
       canvas.drawCircle(
@@ -110,14 +110,14 @@ class CirclePainter extends CustomPainter {
 
     // 회전하는 테두리
     final rotatingArcPaint = Paint()
-      ..color = circle.color.withAlpha((255 * 0.5).toInt())
+      ..color = circle.color.withAlpha((255 * 0.6).toInt())
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
+      ..strokeWidth = 8.0
       ..strokeCap = StrokeCap.round;
 
     final rect = Rect.fromCircle(
       center: circle.position,
-      radius: circle.radius + 5,
+      radius: circle.radius + 10,
     );
 
     canvas.drawArc(
