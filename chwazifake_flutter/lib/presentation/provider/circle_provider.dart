@@ -207,11 +207,6 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
           isFocused: true
         );
         
-        // 레이어가 등장하기 시작할 때 효과음 재생
-        if (circle.focusProgress == 0.0 && newProgress > 0.0) {
-          playFocusSound();
-        }
-        
         if (newProgress >= 1.0 && _holdTimer == null) {
           _holdTimer = Timer(const Duration(seconds: 2), () {
             reset();
@@ -279,6 +274,12 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
 
       if (state.isEmpty) return;  // 진동 중에 상태가 변경될 수 있으므로 한번 더 체크
 
+      // 진동 피드백이 끝난 후, 레이어가 등장하기 직전에 효과음 재생
+      playFocusSound();
+      
+      // 짧은 지연 후 레이어 등장
+      await Future.delayed(const Duration(milliseconds: 100));
+      
       final updatedCircles = state.map((circle) {
         if (circle.id == _lastTouchedCircleId) {
           return circle.copyWith(isFocused: true);
