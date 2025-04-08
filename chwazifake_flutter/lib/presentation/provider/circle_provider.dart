@@ -31,6 +31,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
   bool _isHolding = false;
   int _activePointers = 0;
   final Map<int, String> _pointerToCircleId = {};  // 포인터 ID와 원 ID 매핑
+  final Set<int> _activePointerIds = {};  // 활성화된 포인터 ID 추적
   AudioPlayer _focusAudioPlayer = AudioPlayer();  // 포커스 효과음용 오디오 플레이어
   AudioPlayer _touchAudioPlayer = AudioPlayer();  // 터치 효과음용 오디오 플레이어
 
