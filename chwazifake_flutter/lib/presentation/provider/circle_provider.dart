@@ -171,6 +171,10 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
             developer.log('Hold timer completed, resetting state');
           });
         }
+      } else if (circle.isTouching) {
+        // 터치 중일 때의 크기 변화 애니메이션은 CircleState의 grow() 메서드에서 처리
+        updatedCircle = _handleCircleUseCase.animateCircle(circle);
+        developer.log('Circle ${circle.id} radius: ${updatedCircle.radius}');
       } else {
         updatedCircle = _handleCircleUseCase.animateCircle(circle);
       }
