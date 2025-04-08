@@ -5,6 +5,7 @@ import '../../domain/usecase/handle_circle_usecase.dart';
 import '../../domain/repository/circle_repository.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
 
 final circleProvider = StateNotifierProvider<CircleNotifier, List<CircleState>>((ref) {
   return CircleNotifier(ref.watch(handleCircleUseCaseProvider));
@@ -28,8 +29,11 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
   bool _isHolding = false;
   int _activePointers = 0;
   final Map<int, String> _pointerToCircleId = {};  // 포인터 ID와 원 ID 매핑
+  final AudioPlayer _audioPlayer = AudioPlayer();  // 오디오 플레이어 추가
 
-  CircleNotifier(this._handleCircleUseCase) : super([]);
+  CircleNotifier(this._handleCircleUseCase) : super([]) {
+    _initAudio();  // 생성자에서 _initAudio 호출
+  }
 
   static const List<Color> colors = [
     Color(0xFF2196F3), // Blue
@@ -43,6 +47,47 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     Color(0xFF009688), // Teal
     Color(0xFFCDDC39), // Lime
   ];
+
+  Future<void> _initAudio() async {
+    try {
+      await _audioPlayer.setAsset('assets/audio/focus_sound.mp3');
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.setSpeed(1.0);
+    } catch (e) {
+      developer.log('Error initializing audio: $e');
+    }
+  }
+
+  void playFocusSound() async {
+    try {
+      developer.log('Attempting to play focus sound...');
+      
+      // 현재 재생 중인 오디오 중지
+      await _audioPlayer.stop();
+      
+      // 오디오 재초기화
+      await _initAudio();
+      
+      // 오디오 재생
+      await _audioPlayer.play();
+      developer.log('Focus sound playback started');
+      
+      // 재생 상태 모니터링
+      _audioPlayer.playerStateStream.listen((state) {
+        developer.log('Player state changed: $state');
+        if (state.processingState == ProcessingState.completed) {
+          developer.log('Playback completed');
+          // 재생 완료 후 오디오 플레이어 초기화
+          _initAudio();
+        }
+      });
+      
+    } catch (e) {
+      developer.log('Error playing focus sound: $e');
+      // 오류 발생 시 오디오 재초기화
+      await _initAudio();
+    }
+  }
 
   void onTouch(Offset position, {int? pointerId}) {
     _activePointers++;
@@ -156,23 +201,24 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
       var updatedCircle = circle;
       
       if (circle.isFocused) {
-        // 포커스 애니메이션 진행 (속도 2배 증가)
         final newProgress = (circle.focusProgress + 0.016).clamp(0.0, 1.0);
         updatedCircle = circle.copyWith(
           focusProgress: newProgress,
           isFocused: true
         );
         
-        // 애니메이션이 완료되고 아직 타이머가 설정되지 않았다면
+        // 레이어가 등장하기 시작할 때 효과음 재생
+        if (circle.focusProgress == 0.0 && newProgress > 0.0) {
+          playFocusSound();
+        }
+        
         if (newProgress >= 1.0 && _holdTimer == null) {
-          // 2초 후에 모든 원 제거
           _holdTimer = Timer(const Duration(seconds: 2), () {
             reset();
             developer.log('Hold timer completed, resetting state');
           });
         }
       } else if (circle.isTouching) {
-        // 터치 중일 때의 크기 변화 애니메이션은 CircleState의 grow() 메서드에서 처리
         updatedCircle = _handleCircleUseCase.animateCircle(circle);
         developer.log('Circle ${circle.id} radius: ${updatedCircle.radius}');
       } else {
@@ -196,12 +242,16 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _pointerToCircleId.clear();
     state = [];
     developer.log('State reset completed');
+    
+    // 레이어가 사라질 때 효과음 정지
+    _audioPlayer.stop();
   }
 
   @override
   void dispose() {
     _focusTimer?.cancel();
     _holdTimer?.cancel();
+    _audioPlayer.dispose();  // 오디오 플레이어 해제
     super.dispose();
   }
 
@@ -238,6 +288,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
 
       state = updatedCircles;
       _isHolding = true;
+      
       developer.log('Focus animation started for circle: $_lastTouchedCircleId');
     });
   }

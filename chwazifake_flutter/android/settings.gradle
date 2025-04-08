@@ -1,42 +1,47 @@
 pluginManagement {
     def flutterSdkPath = {
         def properties = new Properties()
-        def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
-        if (!localPropertiesFile.exists()) {
-            throw new FileNotFoundException("local.properties not found. Please ensure the file exists and contains flutter.sdk property")
-        }
-        
-        localPropertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
-        
+        file("local.properties").withInputStream { properties.load(it) }
         def flutterSdkPath = properties.getProperty("flutter.sdk")
-        if (flutterSdkPath == null) {
-            throw new GradleException("flutter.sdk not set in local.properties. Please ensure the property is set correctly")
-        }
-        
+        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
         return flutterSdkPath
     }()
+    settings.ext.flutterSdkPath = flutterSdkPath
 
-    includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
         google()
         mavenCentral()
-        gradlePluginPortal()
+        maven {
+            url 'https://storage.googleapis.com/download.flutter.io'
+        }
     }
 }
 
 include ':app'
 
-// Flutter-specific configurations
-def flutterProjectRoot = rootProject.projectDir.parentFile
+def flutterProjectRoot = rootProject.projectDir.parentFile.toPath()
+
 def plugins = new Properties()
-def pluginsFile = new File(flutterProjectRoot, '.flutter-plugins')
+def pluginsFile = new File(flutterProjectRoot.toFile(), '.flutter-plugins')
 if (pluginsFile.exists()) {
     pluginsFile.withReader('UTF-8') { reader -> plugins.load(reader) }
 }
 
 plugins.each { name, path ->
-    def pluginDirectory = flutterProjectRoot.toPath().resolve(path).toFile()
+    def pluginDirectory = flutterProjectRoot.resolve(path).resolve('android').toFile()
     include ":$name"
     project(":$name").projectDir = pluginDirectory
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url 'https://storage.googleapis.com/download.flutter.io'
+        }
+    }
 }
