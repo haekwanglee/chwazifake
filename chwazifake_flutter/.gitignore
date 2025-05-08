@@ -54,6 +54,9 @@ android/app/.cxx/
 *.apk
 *.aab
 *.aar
+android/key.properties
+*.keystore
+*.jks
 
 # iOS related
 ios/Flutter/Flutter.framework
@@ -65,29 +68,47 @@ ios/Runner.xcworkspace/
 ios/DerivedData/
 ios/.dart_tool/
 ios/.generated/
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+ios/Flutter/Generated.xcconfig
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.moved-aside
+ios/*.pbxuser
+ios/*.perspectivev3
+ios/*.xccheckout
+ios/*.xcscmblueprint
+ios/*.xcuserstate
+ios/Runner/GeneratedPluginRegistrant.*
 
 # macOS related
 macos/Flutter/ephemeral/
 macos/.dart_tool/
+macos/Flutter/GeneratedPluginRegistrant.*
 
 # Web related
 web/.dart_tool/
 web/generated/
+web/packages/
+web/build/
 
 # Windows related
 windows/.dart_tool/
 windows/runner/ephemeral/
 windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.*
 
 # Linux related
 linux/.dart_tool/
 linux/runner/ephemeral/
 linux/flutter/ephemeral/
+linux/flutter/generated_plugin_registrant.*
 
 # Testing & Coverage
 coverage/
 *.lcov
 .dart_tool/test/
+test/coverage/
 
 # Environment & Configuration
 .env
@@ -95,11 +116,50 @@ coverage/
 !.env.example
 google-services.json
 GoogleService-Info.plist
+key.properties
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+*~
+*.swp
+*.swo
 
-# Logs
+# Logs and databases
 *.log
+*.sqlite
+*.sqlite3
+*.db
+
+# IDE - JetBrains (IntelliJ, Android Studio, etc)
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/misc.xml
+.idea/*.iml
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
 
