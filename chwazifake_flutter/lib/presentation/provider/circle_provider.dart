@@ -383,7 +383,7 @@ class CircleNotifier extends StateNotifier<List<CircleState>> {
     _isHolding = false;
     _isAnimationComplete = false;
 
-    _focusTimer = Timer(const Duration(seconds: 4), () async {
+    _focusTimer = Timer(const Duration(seconds: 3), () async {
       if (state.isEmpty) return;
 
       // 최대 강도의 진동 피드백

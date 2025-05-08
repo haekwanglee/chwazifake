@@ -60,6 +60,7 @@ dev_dependencies:
   build_runner: ^2.4.8
   freezed: ^2.4.7
   json_serializable: ^6.7.1
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -75,6 +76,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/audio/
+    - trickzi_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
@@ -101,3 +103,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "trickzi_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "trickzi_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
