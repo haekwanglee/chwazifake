@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hkwg.chwazifake_flutter">
    <application
-        android:label="chwazifake_flutter"
+        android:label="trickzi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
